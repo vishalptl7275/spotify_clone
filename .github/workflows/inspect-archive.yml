@@ -13,15 +13,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect archive contents
+      - name: Inspect and safely report project structure
         run: |
           mkdir -p extracted
           unzip -q spotify.zip -d extracted
-          echo "Archive file count:"
-          find extracted -type f | wc -l
-          echo "Top-level files:"
-          find extracted -maxdepth 3 -type f | sort | head -120
-          echo "HTML entry points:"
-          find extracted -type f -iname 'index.html' -print
-          echo "Build manifests:"
-          find extracted -maxdepth 5 \( -name package.json -o -name vite.config.js -o -name vite.config.ts -o -name angular.json \) -print
+          APP="extracted/spotify"
+          echo "FILE COUNT: $(find "$APP" -type f | wc -l)"
+          echo "TOP-LEVEL:"
+          find "$APP" -maxdepth 2 -type f ! -path '*/node_modules/*' ! -path '*/.git/*' | sort
+          echo "ENVIRONMENT VARIABLE NAMES ONLY (values intentionally hidden):"
+          if [ -f "$APP/backend/.env" ]; then
+            sed -E 's/[[:space:]]*=[[:space:]]*.*/=<redacted>/' "$APP/backend/.env" | sed '/^#/d;/^$/d'
+          else
+            echo "No backend .env file"
+          fi
+          echo "BACKEND PACKAGE:"
+          cat "$APP/backend/package.json"
+          echo "DATABASE SCHEMA:"
+          sed -E "s/(IDENTIFIED BY)[[:space:]]+('[^']*')/\1 '<redacted>'/Ig" "$APP/backend/schema.sql"
+          echo "SERVER SOURCE (credential-like literals redacted):"
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          p=Path("extracted/spotify/backend/server.js")
+          if p.exists():
+              s=p.read_text(errors="replace")
+              s=re.sub(r'(?i)((?:password|secret|token|api[_-]?key|jwt[_-]?secret)\s*[:=]\s*["\'\x60])[^"\'\x60]+',r'\1<redacted>',s)
+              print(s)
+          PY
+          echo "FRONTEND API REFERENCES:"
+          grep -RInE 'fetch\(|axios\.|localhost|/api/' "$APP" --include='*.html' --include='*.js' --exclude-dir=node_modules --exclude-dir=.git | head -120 || true
