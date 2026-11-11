@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Spotify Web Player - Music for everyone. Stream your favorite songs, playlists and podcasts.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="./assets/images/logo.png">
+    <title>Spotify - Web Player: Music for everyone</title>
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="main">
+
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar">
+
+            <!-- Nav -->
+            <div class="nav">
+                <div class="nav-option" id="sidebar-home" style="cursor:pointer;" onclick="window.location.href='index.html'">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Home</span>
+                </div>
+                <div class="nav-option" id="sidebar-search" style="cursor:pointer;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Search</span>
+                </div>
+            </div>
+
+            <!-- Library -->
+            <div class="library">
+                <div class="option">
+                    <div class="lib-option nav-option">
+                        <i class="fa-solid fa-book-open"></i>
+                        <a href="#">Your Library</a>
+                    </div>
+                    <div class="icons">
+                        <i class="fa-solid fa-plus" id="create-playlist-icon" title="Create playlist" style="cursor:pointer;"></i>
+                        <i class="fa-solid fa-arrow-right" title="Expand"></i>
+                    </div>
+                </div>
+
+                <div class="lib-box">
+                    <div id="no-playlists-box" class="box">
+                        <p class="box-p1">Create your first playlist</p>
+                        <p class="box-p2">It's easy, we'll help you</p>
+                        <button class="badge" id="create-playlist-btn">Create playlist</button>
+                    </div>
+                    
+                    <!-- Dynamic playlists will be rendered here -->
+                    <div id="user-playlists" style="margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem;"></div>
+
+                    <div class="box" style="margin-top:1.5rem;">
+                        <p class="box-p1">Let's find some podcasts to follow</p>
+                        <p class="box-p2">We'll keep you updated on new episodes</p>
+                        <button class="badge">Browse podcasts</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="main-content">
+
+            <!-- Sticky Nav -->
+            <div class="sticky-nav">
+                <div class="sticky-nav-icons">
+                    <i class="fa-solid fa-chevron-left" style="font-size:1rem; color:#fff; opacity:0.7; background:rgba(0,0,0,0.5); padding:0.55rem 0.65rem; border-radius:50%; cursor:pointer;"></i>
+                    <i class="fa-solid fa-chevron-right" style="font-size:1rem; color:#fff; opacity:0.4; background:rgba(0,0,0,0.5); padding:0.55rem 0.65rem; border-radius:50%; cursor:pointer;"></i>
+                </div>
+
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="search" id="search-input" placeholder="What do you want to listen to?" autocomplete="off">
+                </div>
+
+                <div class="sticky-nav-options" id="nav-options">
+                    <!-- Filled by JS based on auth state -->
+                </div>
+            </div>
+
+            <!-- ===== LIVE SEARCH RESULTS (iTunes API) ===== -->
+            <section id="search-results-section" style="display:none;">
+                <h2 id="search-results-heading">Search Results</h2>
+                <div id="search-results-container" style="margin-top:0.5rem;"></div>
+            </section>
+
+            <!-- ===== PLAYLIST VIEW ===== -->
+            <section id="playlist-view-section" style="display:none;">
+                <div style="display:flex; align-items:flex-end; gap:1.5rem; margin-bottom:1.5rem; padding:1.5rem 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <i class="fa-solid fa-music" style="font-size:5rem; color:#b3b3b3; background:#282828; padding:3rem; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.5);"></i>
+                    <div>
+                        <p style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.5rem;">Playlist</p>
+                        <h1 id="playlist-view-title" style="font-size:3.5rem; font-weight:900; letter-spacing:-0.04em; margin-bottom:1rem; line-height:1;">Playlist Title</h1>
+                        <p id="playlist-view-info" style="font-size:0.9rem; color:#b3b3b3; font-weight:600;"></p>
+                    </div>
+                </div>
+                <!-- Play all button -->
+                <button id="play-all-btn" style="background:#1DB954; color:#000; border:none; border-radius:50%; width:56px; height:56px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.5rem; margin-bottom:1rem; transition:transform 0.1s; box-shadow:0 8px 16px rgba(0,0,0,0.3);" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                    <i class="fa-solid fa-play" style="margin-left:4px;"></i>
+                </button>
+                <div id="playlist-songs-container"></div>
+            </section>
+
+            <!-- ===== HERO BANNER ===== -->
+            <div class="default-section" id="hero-banner" style="margin:1.5rem 0 0; border-radius:16px; overflow:hidden; background:linear-gradient(135deg,#1a472a 0%,#1DB954 60%,#0d2b1a 100%); padding:2.5rem 2rem; display:flex; align-items:center; justify-content:space-between; position:relative; min-height:180px;">
+                <div style="z-index:1;">
+                    <p style="font-size:0.78rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(255,255,255,0.75); margin-bottom:0.5rem;">Welcome back</p>
+                    <h1 style="font-size:2.4rem; font-weight:900; letter-spacing:-0.03em; line-height:1.1; margin-bottom:0.75rem;">Discover Music<br>You'll Love 🎵</h1>
+                    <p style="font-size:0.9rem; color:rgba(255,255,255,0.8); margin-bottom:1.25rem; max-width:380px;">Search any song to play the <strong>full version</strong> via YouTube — free, instant, no limits.</p>
+                    <button onclick="document.getElementById('search-input').focus()" style="background:#fff; color:#000; border:none; border-radius:500px; padding:0.65rem 1.75rem; font-weight:700; font-size:0.9rem; cursor:pointer; font-family:'Montserrat',sans-serif; transition:transform 0.15s,background 0.15s;" onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#fff'">Search Now</button>
+                </div>
+                <div style="position:absolute; right:2rem; top:50%; transform:translateY(-50%); font-size:8rem; opacity:0.18; user-select:none;">🎶</div>
+            </div>
+
+            <!-- Section: Your Top Tracks (Spotify-driven) -->
+            <span class="default-section">
+            <h2 style="display:flex;align-items:center;gap:0.5rem;">Recently Played <span style="font-size:0.8rem;font-weight:600;color:#b3b3b3;background:#282828;padding:2px 10px;border-radius:500px;">Spotify</span></h2>
+            <div class="cards-container" id="recently-played-row">
+                <!-- Filled by spotify.js -->
+                <div class="card">
+                    <div class="card-img-wrapper">
+                        <img src="assets/images/card1img.jpeg" class="card-img" alt="Top 50 Global">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Top 50 - Global</p>
+                    <p class="card-info">Your daily updates of the most played tracks</p>
+                </div>
+            </div>
+            </span>
+
+            <!-- Section: Quick Play Full Songs (YouTube) -->
+            <span class="default-section">
+            <h2 style="display:flex;align-items:center;gap:0.5rem;">Full Songs <span style="font-size:0.8rem;font-weight:600;color:#b3b3b3;background:#282828;padding:2px 10px;border-radius:500px;">▶ YouTube</span></h2>
+            <div class="cards-container" id="youtube-quick-row">
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('JGwWNGJdvx8','Shape of You','Ed Sheeran','https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/JGwWNGJdvx8/hqdefault.jpg" class="card-img" alt="Shape of You">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Shape of You</p>
+                    <p class="card-info">Ed Sheeran</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('kJQP7kiw5Fk','Despacito','Luis Fonsi','https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" class="card-img" alt="Despacito">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Despacito</p>
+                    <p class="card-info">Luis Fonsi ft. Daddy Yankee</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('fJ9rUzIMcZQ','Bohemian Rhapsody','Queen','https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" class="card-img" alt="Bohemian Rhapsody">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Bohemian Rhapsody</p>
+                    <p class="card-info">Queen</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('09R8_2nJtjg','Sugar','Maroon 5','https://i.ytimg.com/vi/09R8_2nJtjg/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/09R8_2nJtjg/hqdefault.jpg" class="card-img" alt="Sugar">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Sugar</p>
+                    <p class="card-info">Maroon 5</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('hT_nvWreIhg','Counting Stars','OneRepublic','https://i.ytimg.com/vi/hT_nvWreIhg/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/hT_nvWreIhg/hqdefault.jpg" class="card-img" alt="Counting Stars">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Counting Stars</p>
+                    <p class="card-info">OneRepublic</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('YQHsXMglC9A','Hello','Adele','https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/YQHsXMglC9A/hqdefault.jpg" class="card-img" alt="Hello">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Hello</p>
+                    <p class="card-info">Adele</p>
+                </div>
+            </div>
+            </span>
+
+            <!-- Section: Trending -->
+            <span class="default-section">
+            <h2>Trending Now 🔥</h2>
+            <div class="cards-container">
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('H5v3kku4y6Q','Blinding Lights','The Weeknd','https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/H5v3kku4y6Q/hqdefault.jpg" class="card-img" alt="Blinding Lights">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Blinding Lights</p>
+                    <p class="card-info">The Weeknd</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('RgKAFK5djSk','See You Again','Wiz Khalifa','https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/RgKAFK5djSk/hqdefault.jpg" class="card-img" alt="See You Again">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">See You Again</p>
+                    <p class="card-info">Wiz Khalifa</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('nfWlot6h_JM','Shake It Off','Taylor Swift','https://i.ytimg.com/vi/nfWlot6h_JM/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/nfWlot6h_JM/hqdefault.jpg" class="card-img" alt="Shake It Off">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Shake It Off</p>
+                    <p class="card-info">Taylor Swift</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('OPf0YbXqDm0','Happy','Pharrell Williams','https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg" class="card-img" alt="Happy">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Happy</p>
+                    <p class="card-info">Pharrell Williams</p>
+                </div>
+                <div class="card" onclick="if(window.YouTubeAPI)window.YouTubeAPI.playVideo('2Vv-BfVoq4g','Perfect','Ed Sheeran','https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg')">
+                    <div class="card-img-wrapper">
+                        <img src="https://i.ytimg.com/vi/2Vv-BfVoq4g/hqdefault.jpg" class="card-img" alt="Perfect">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Perfect</p>
+                    <p class="card-info">Ed Sheeran</p>
+                </div>
+            </div>
+            </span>
+
+            <!-- Section: Featured Charts -->
+            <span class="default-section">
+            <h2>Featured Charts 📊</h2>
+            <div class="cards-container">
+                <div class="card">
+                    <div class="card-img-wrapper">
+                        <img src="assets/images/card5img.jpeg" class="card-img" alt="Chart 1">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Top 50 — India</p>
+                    <p class="card-info">Updated daily with the biggest hits</p>
+                </div>
+                <div class="card">
+                    <div class="card-img-wrapper">
+                        <img src="assets/images/card6img.jpeg" class="card-img" alt="Chart 2">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Viral 50 — Global</p>
+                    <p class="card-info">The most viral songs right now</p>
+                </div>
+                <div class="card">
+                    <div class="card-img-wrapper">
+                        <img src="assets/images/card1img.jpeg" class="card-img" alt="Chart 3">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">New Music Friday</p>
+                    <p class="card-info">The best new music every week</p>
+                </div>
+                <div class="card">
+                    <div class="card-img-wrapper">
+                        <img src="assets/images/card2img.jpeg" class="card-img" alt="Chart 4">
+                        <button class="card-play-btn"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                    <p class="card-tittle">Bollywood Hits</p>
+                    <p class="card-info">Top Hindi and Bollywood bangers</p>
+                </div>
+            </div>
+            </span>
+
+            <div class="footer">
+                <div class="line"></div>
+            </div>
+
+        </div>
+
+        <!-- ===== MUSIC PLAYER ===== -->
+        <div class="music-player">
+
+            <!-- Album Info -->
+            <div class="album">
+                <div class="album-art">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div class="album-info">
+                    <p class="album-title">Select a song</p>
+                    <p class="album-artist">Artist name</p>
+                </div>
+                <i class="fa-regular fa-heart album-heart"></i>
+            </div>
+
+            <!-- Player Controls -->
+            <div class="player">
+                <div class="player-controls">
+                    <i class="fa-solid fa-shuffle" style="font-size:1rem; color:#b3b3b3; cursor:pointer;" title="Shuffle"></i>
+                    <i class="fa-solid fa-backward-step" style="font-size:1.3rem; color:#b3b3b3; cursor:pointer;" title="Previous"></i>
+                    <button id="play-pause-btn" style="background:#fff; border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s ease; flex-shrink:0;">
+                        <i class="fa-solid fa-play" id="play-icon" style="font-size:0.9rem; color:#000; margin-left:2px;"></i>
+                    </button>
+                    <i class="fa-solid fa-forward-step" style="font-size:1.3rem; color:#b3b3b3; cursor:pointer;" title="Next"></i>
+                    <i class="fa-solid fa-repeat" style="font-size:1rem; color:#b3b3b3; cursor:pointer;" title="Repeat"></i>
+                </div>
+                <div class="playback-bar">
+                    <span class="curr-time">0:00</span>
+                    <input type="range" min="0" max="213" value="0" class="progress-bar" step="0.01" id="progress-bar">
+                    <span class="tot-time">3:33</span>
+                </div>
+            </div>
+
+            <!-- Volume Controls -->
+            <div class="controls">
+                <i class="fa-solid fa-volume-high vol-icon"></i>
+                <input type="range" min="0" max="100" value="70" class="vol-bar" step="0.1" id="vol-bar">
+                <i class="fa-solid fa-maximize" style="font-size:0.9rem; color:#b3b3b3; cursor:pointer; margin-left:0.5rem;"></i>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="./assets/js/script.js"></script>
+</body>
+</html>
