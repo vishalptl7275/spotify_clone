@@ -22,7 +22,7 @@ jobs:
           mkdir -p /tmp/spotify-archive
           unzip -q spotify.zip -d /tmp/spotify-archive
           test -f /tmp/spotify-archive/spotify/index.html
-          cp -a /tmp/spotify-archive/spotify/. .
+          tar -C /tmp/spotify-archive/spotify --exclude='.git' --exclude='backend/.env' --exclude='backend/node_modules' --exclude='*/.DS_Store' -cf - . | tar -xf - -C .
           rm -rf backend/node_modules backend/.git backend/.env __MACOSX
           find . -name '.DS_Store' -delete
           cat > .gitignore <<'EOF'
