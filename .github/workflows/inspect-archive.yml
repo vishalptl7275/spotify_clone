@@ -54,3 +54,17 @@ jobs:
           sed -E "s/(IDENTIFIED BY)[[:space:]]+('[^']*')/\1 '<redacted>'/Ig" "$APP/backend/schema.sql"
           echo "FRONTEND LOCALHOST REFERENCES:"
           grep -RIn 'localhost:3000' "$APP" --include='*.html' || true
+
+      - name: Package sanitized source for review
+        run: |
+          tar -czf spotify-source.tar.gz \
+            --exclude='spotify/backend/.env' \
+            --exclude='spotify/backend/node_modules' \
+            --exclude='spotify/.git' \
+            --exclude='*/.DS_Store' \
+            -C extracted spotify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spotify-source-review
+          path: spotify-source.tar.gz
+          retention-days: 1
