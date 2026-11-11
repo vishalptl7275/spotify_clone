@@ -1,0 +1,71 @@
+name: Spotify Clone CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root-test-password
+          MYSQL_DATABASE: spotify_clone
+          MYSQL_USER: spotifyapp
+          MYSQL_PASSWORD: app-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot-test-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+      - name: Check JavaScript syntax
+        run: |
+          node --check backend/server.js
+          find backend/config backend/middleware backend/routes -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Initialize database
+        run: mysql -h 127.0.0.1 -uroot -proot-test-password < backend/schema.sql
+      - name: Start API and verify health
+        env:
+          PORT: 3000
+          DB_HOST: 127.0.0.1
+          DB_USER: spotifyapp
+          DB_PASSWORD: app-test-password
+          DB_NAME: spotify_clone
+          JWT_SECRET: test-only-secret-that-is-at-least-32-characters-long
+          JWT_EXPIRES_IN: 7d
+        run: |
+          cd backend
+          node server.js > /tmp/spotify-api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health; then break; fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:3000/api/health
+      - name: Test signup, login and playlist access
+        run: |
+          signup=$(curl -fsS -X POST http://127.0.0.1:3000/api/auth/signup -H 'Content-Type: application/json' -d '{"username":"ci-user","email":"ci@example.com","password":"StrongPass123"}')
+          token=$(echo "$signup" | jq -r .token)
+          test -n "$token" && test "$token" != "null"
+          curl -fsS http://127.0.0.1:3000/api/auth/me -H "Authorization: Bearer $token" | jq -e '.user.username == "ci-user"'
+          curl -fsS -X POST http://127.0.0.1:3000/api/playlists -H 'Content-Type: application/json' -H "Authorization: Bearer $token" -d '{"name":"CI playlist"}' | jq -e '.success == true'
+          login=$(curl -fsS -X POST http://127.0.0.1:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"ci@example.com","password":"StrongPass123"}')
+          echo "$login" | jq -e '.success == true'
+      - name: Build Docker image
+        run: docker build -t spotify-clone:ci .
