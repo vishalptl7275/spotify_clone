@@ -19,27 +19,38 @@ jobs:
           unzip -q spotify.zip -d extracted
           APP="extracted/spotify"
           echo "FILE COUNT: $(find "$APP" -type f | wc -l)"
-          echo "TOP-LEVEL:"
-          find "$APP" -maxdepth 2 -type f ! -path '*/node_modules/*' ! -path '*/.git/*' | sort
-          echo "ENVIRONMENT VARIABLE NAMES ONLY (values intentionally hidden):"
-          if [ -f "$APP/backend/.env" ]; then
-            sed -E 's/[[:space:]]*=[[:space:]]*.*/=<redacted>/' "$APP/backend/.env" | sed '/^#/d;/^$/d'
-          else
-            echo "No backend .env file"
-          fi
+          echo "SOURCE TREE (excluding dependency folders):"
+          find "$APP" -maxdepth 4 -type f ! -path '*/node_modules/*' ! -path '*/.git/*' ! -name '.DS_Store' | sort
+          echo "ENVIRONMENT KEY STATUS ONLY:"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("extracted/spotify/backend/.env")
+          if p.exists():
+              for line in p.read_text(errors="replace").splitlines():
+                  line=line.strip()
+                  if not line or line.startswith("#") or "=" not in line: continue
+                  key,value=line.split("=",1)
+                  v=value.strip().strip('"').strip("'")
+                  state="empty" if not v else ("placeholder-looking" if any(x in v.lower() for x in ["your_", "replace", "changeme", "example", "localhost"]) else "non-empty; treat as potentially sensitive")
+                  print(f"{key.strip()}: {state}")
+          else:
+              print("No .env file")
+          PY
           echo "BACKEND PACKAGE:"
           cat "$APP/backend/package.json"
-          echo "DATABASE SCHEMA:"
-          sed -E "s/(IDENTIFIED BY)[[:space:]]+('[^']*')/\1 '<redacted>'/Ig" "$APP/backend/schema.sql"
-          echo "SERVER SOURCE (credential-like literals redacted):"
+          echo "DB CONNECTION MODULE:"
+          sed -E "s/(password[[:space:]]*:[[:space:]]*)[^,]+/\1'<redacted>'/Ig" "$APP/backend/config/db.js"
+          echo "AUTH ROUTE SOURCE (secret literals redacted):"
           python3 - <<'PY'
           import re
           from pathlib import Path
-          p=Path("extracted/spotify/backend/server.js")
+          p=Path("extracted/spotify/backend/routes/auth.js")
           if p.exists():
               s=p.read_text(errors="replace")
               s=re.sub(r'(?i)((?:password|secret|token|api[_-]?key|jwt[_-]?secret)\s*[:=]\s*["\'\x60])[^"\'\x60]+',r'\1<redacted>',s)
               print(s)
           PY
-          echo "FRONTEND API REFERENCES:"
-          grep -RInE 'fetch\(|axios\.|localhost|/api/' "$APP" --include='*.html' --include='*.js' --exclude-dir=node_modules --exclude-dir=.git | head -120 || true
+          echo "DATABASE SCHEMA:"
+          sed -E "s/(IDENTIFIED BY)[[:space:]]+('[^']*')/\1 '<redacted>'/Ig" "$APP/backend/schema.sql"
+          echo "FRONTEND LOCALHOST REFERENCES:"
+          grep -RIn 'localhost:3000' "$APP" --include='*.html' || true
