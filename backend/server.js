@@ -9,6 +9,7 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 const frontendDir = process.env.FRONTEND_DIR || path.join(__dirname, '..');
+app.use('/backend', (req, res) => res.sendStatus(404));
 app.use(express.static(frontendDir, { dotfiles: 'deny', index: false }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/playlists', require('./routes/playlists'));
