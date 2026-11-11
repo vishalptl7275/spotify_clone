@@ -199,68 +199,7 @@ jobs:
           *.zip
           .DS_Store
           EOF
-          cat > .github/workflows/ci.yml <<'EOF'
-          name: Spotify Clone CI
-          on:
-            push:
-              branches: [main]
-            pull_request:
-              branches: [main]
-          permissions:
-            contents: read
-          jobs:
-            test:
-              runs-on: ubuntu-latest
-              services:
-                mysql:
-                  image: mysql:8.4
-                  env:
-                    MYSQL_ROOT_PASSWORD: root-test-password
-                    MYSQL_DATABASE: spotify_clone
-                    MYSQL_USER: spotifyapp
-                    MYSQL_PASSWORD: app-test-password
-                  ports:
-                    - 3306:3306
-                  options: >-
-                    --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot-test-password"
-                    --health-interval=10s
-                    --health-timeout=5s
-                    --health-retries=10
-              steps:
-                - uses: actions/checkout@v4
-                - uses: actions/setup-node@v4
-                  with:
-                    node-version: '20'
-                - name: Install backend dependencies
-                  working-directory: backend
-                  run: npm ci
-                - name: Check JavaScript syntax
-                  run: |
-                    node --check backend/server.js
-                    find backend/config backend/middleware backend/routes -name '*.js' -print0 | xargs -0 -n1 node --check
-                - name: Initialize database
-                  run: mysql -h 127.0.0.1 -uroot -proot-test-password < backend/schema.sql
-                - name: Start API and verify health
-                  env:
-                    PORT: 3000
-                    DB_HOST: 127.0.0.1
-                    DB_USER: spotifyapp
-                    DB_PASSWORD: app-test-password
-                    DB_NAME: spotify_clone
-                    JWT_SECRET: test-only-secret-that-is-at-least-32-characters-long
-                  run: |
-                    cd backend
-                    node server.js > /tmp/spotify-api.log 2>&1 &
-                    for i in $(seq 1 30); do
-                      if curl -fsS http://127.0.0.1:3000/api/health; then exit 0; fi
-                      sleep 2
-                    done
-                    cat /tmp/spotify-api.log
-                    exit 1
-                - name: Build Docker image
-                  run: docker build -t spotify-clone:ci .
-          EOF
-          rm -f .github/workflows/inspect-archive.yml
+
           rm -f spotify.zip
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
