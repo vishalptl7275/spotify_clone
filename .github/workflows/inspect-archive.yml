@@ -1,0 +1,27 @@
+name: Inspect Spotify Clone Archive
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect archive contents
+        run: |
+          mkdir -p extracted
+          unzip -q spotify.zip -d extracted
+          echo "Archive file count:"
+          find extracted -type f | wc -l
+          echo "Top-level files:"
+          find extracted -maxdepth 3 -type f | sort | head -120
+          echo "HTML entry points:"
+          find extracted -type f -iname 'index.html' -print
+          echo "Build manifests:"
+          find extracted -maxdepth 5 \( -name package.json -o -name vite.config.js -o -name vite.config.ts -o -name angular.json \) -print
