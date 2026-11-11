@@ -64,7 +64,13 @@ jobs:
           token=$(echo "$signup" | jq -r .token)
           test -n "$token" && test "$token" != "null"
           curl -fsS http://127.0.0.1:3000/api/auth/me -H "Authorization: Bearer $token" | jq -e '.user.username == "ci-user"'
-          curl -fsS -X POST http://127.0.0.1:3000/api/playlists -H 'Content-Type: application/json' -H "Authorization: Bearer $token" -d '{"name":"CI playlist"}' | jq -e '.success == true'
+          playlist=$(curl -fsS -X POST http://127.0.0.1:3000/api/playlists -H 'Content-Type: application/json' -H "Authorization: Bearer $token" -d '{"name":"CI playlist"}')
+          playlist_id=$(echo "$playlist" | jq -r .playlistId)
+          test -n "$playlist_id" && test "$playlist_id" != "null"
+          second_signup=$(curl -fsS -X POST http://127.0.0.1:3000/api/auth/signup -H 'Content-Type: application/json' -d '{"username":"other-user","email":"other@example.com","password":"StrongPass123"}')
+          second_token=$(echo "$second_signup" | jq -r .token)
+          status=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:3000/api/playlists/$playlist_id/songs" -H 'Content-Type: application/json' -H "Authorization: Bearer $second_token" -d '{"itunes_id":12345,"title":"Test song"}')
+          test "$status" = "404"
           login=$(curl -fsS -X POST http://127.0.0.1:3000/api/auth/login -H 'Content-Type: application/json' -d '{"email":"ci@example.com","password":"StrongPass123"}')
           echo "$login" | jq -e '.success == true'
       - name: Build Docker image
